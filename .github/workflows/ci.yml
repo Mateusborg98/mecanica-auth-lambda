@@ -1,0 +1,54 @@
+name: Lambda CI
+
+on:
+  pull_request:
+    branches:
+      - homolog
+      - main
+  push:
+    branches:
+      - "feature/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Allow Maven Wrapper execution
+        run: chmod +x mvnw
+
+      - name: Run tests and coverage verification
+        run: ./mvnw --batch-mode clean verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-test-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 7
