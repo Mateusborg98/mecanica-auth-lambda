@@ -145,4 +145,8 @@ public record CpfCnpj(String value) {
                 + value.substring(8, 12)
                 + "-**";
     }
+
+    public DocumentType documentType() {
+        return isCpf() ? DocumentType.CPF : DocumentType.CNPJ;
+    }
 }
