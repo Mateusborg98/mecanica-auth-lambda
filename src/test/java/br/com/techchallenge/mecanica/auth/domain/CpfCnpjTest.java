@@ -19,6 +19,7 @@ class CpfCnpjTest {
         CpfCnpj document = new CpfCnpj("52998224725");
 
         assertEquals("52998224725", document.value());
+        assertEquals(DocumentType.CPF, document.documentType());
         assertTrue(document.isCpf());
         assertFalse(document.isCnpj());
     }
@@ -28,6 +29,7 @@ class CpfCnpjTest {
         CpfCnpj document = new CpfCnpj("529.982.247-25");
 
         assertEquals("52998224725", document.value());
+        assertEquals(DocumentType.CPF, document.documentType());
     }
 
     @Test
@@ -35,6 +37,7 @@ class CpfCnpjTest {
         CpfCnpj document = new CpfCnpj("11222333000181");
 
         assertEquals("11222333000181", document.value());
+        assertEquals(DocumentType.CNPJ, document.documentType());
         assertTrue(document.isCnpj());
         assertFalse(document.isCpf());
     }
@@ -44,6 +47,7 @@ class CpfCnpjTest {
         CpfCnpj document = new CpfCnpj("11.222.333/0001-81");
 
         assertEquals("11222333000181", document.value());
+        assertEquals(DocumentType.CNPJ, document.documentType());
     }
 
     @Test
