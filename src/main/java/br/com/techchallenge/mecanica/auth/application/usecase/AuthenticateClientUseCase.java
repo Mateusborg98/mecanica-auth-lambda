@@ -1,4 +1,4 @@
-package br.com.techchallenge.mecanica.auth.application.service;
+package br.com.techchallenge.mecanica.auth.application.usecase;
 
 import java.util.Objects;
 
@@ -9,12 +9,12 @@ import br.com.techchallenge.mecanica.auth.domain.Client;
 import br.com.techchallenge.mecanica.auth.domain.CpfCnpj;
 import br.com.techchallenge.mecanica.auth.domain.exception.InvalidCredentialsException;
 
-public class AuthenticateClientService {
+public class AuthenticateClientUseCase {
 
     private final ClientRepository clientRepository;
     private final TokenGateway tokenGateway;
 
-    public AuthenticateClientService(
+    public AuthenticateClientUseCase(
             ClientRepository clientRepository,
             TokenGateway tokenGateway) {
 

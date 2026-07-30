@@ -1,4 +1,4 @@
-package br.com.techchallenge.mecanica.auth.application.service;
+package br.com.techchallenge.mecanica.auth.application.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,7 +21,7 @@ import br.com.techchallenge.mecanica.auth.domain.DocumentType;
 import br.com.techchallenge.mecanica.auth.domain.exception.InvalidCpfCnpjException;
 import br.com.techchallenge.mecanica.auth.domain.exception.InvalidCredentialsException;
 
-class AuthenticateClientServiceTest {
+class AuthenticateClientUseCaseTest {
 
     private static final UUID CLIENT_ID =
             UUID.fromString("10000000-0000-0000-0000-000000000001");
@@ -42,8 +42,8 @@ class AuthenticateClientServiceTest {
             return new IssuedToken("signed.jwt.token", 3600);
         };
 
-        AuthenticateClientService service =
-                new AuthenticateClientService(repository, tokenGateway);
+        AuthenticateClientUseCase service =
+                new AuthenticateClientUseCase(repository, tokenGateway);
 
         IssuedToken result = service.authenticate("529.982.247-25");
 
@@ -65,8 +65,8 @@ class AuthenticateClientServiceTest {
             return new IssuedToken("signed.jwt.token", 3600);
         };
 
-        AuthenticateClientService service =
-                new AuthenticateClientService(repository, tokenGateway);
+        AuthenticateClientUseCase service =
+                new AuthenticateClientUseCase(repository, tokenGateway);
 
         service.authenticate("11.222.333/0001-81");
 
@@ -84,8 +84,8 @@ class AuthenticateClientServiceTest {
             return new IssuedToken("should-not-exist", 3600);
         };
 
-        AuthenticateClientService service =
-                new AuthenticateClientService(repository, tokenGateway);
+        AuthenticateClientUseCase service =
+                new AuthenticateClientUseCase(repository, tokenGateway);
 
         assertThrows(
                 InvalidCredentialsException.class,
@@ -106,8 +106,8 @@ class AuthenticateClientServiceTest {
             return new IssuedToken("should-not-exist", 3600);
         };
 
-        AuthenticateClientService service =
-                new AuthenticateClientService(repository, tokenGateway);
+        AuthenticateClientUseCase service =
+                new AuthenticateClientUseCase(repository, tokenGateway);
 
         assertThrows(
                 InvalidCredentialsException.class,
@@ -128,8 +128,8 @@ class AuthenticateClientServiceTest {
         TokenGateway tokenGateway = (clientId, documentType) ->
                 new IssuedToken("should-not-exist", 3600);
 
-        AuthenticateClientService service =
-                new AuthenticateClientService(repository, tokenGateway);
+        AuthenticateClientUseCase service =
+                new AuthenticateClientUseCase(repository, tokenGateway);
 
         assertThrows(
                 InvalidCpfCnpjException.class,
@@ -146,11 +146,11 @@ class AuthenticateClientServiceTest {
 
         assertThrows(
                 NullPointerException.class,
-                () -> new AuthenticateClientService(null, tokenGateway));
+                () -> new AuthenticateClientUseCase(null, tokenGateway));
 
         assertThrows(
                 NullPointerException.class,
-                () -> new AuthenticateClientService(repository, null));
+                () -> new AuthenticateClientUseCase(repository, null));
     }
 
     @Test
