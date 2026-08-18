@@ -29,11 +29,25 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Configure Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
       - name: Allow Maven Wrapper execution
         run: chmod +x mvnw
 
       - name: Run tests and coverage verification
         run: ./mvnw --batch-mode clean verify
+
+      - name: Initialize Terraform
+        run: terraform -chdir=infra init -backend=false -input=false
+
+      - name: Check Terraform formatting
+        run: terraform -chdir=infra fmt -check
+
+      - name: Validate Terraform
+        run: terraform -chdir=infra validate
 
       - name: Upload test reports
         if: always()
