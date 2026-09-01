@@ -1,6 +1,44 @@
 locals {
-  name            = "mecanica-auth-${var.environment}"
-  lambda_jar_path = abspath("${path.module}/${var.lambda_jar_path}")
+  name                       = "mecanica-auth-${var.environment}"
+  lambda_jar_path            = abspath("${path.module}/${var.lambda_jar_path}")
+  database_state_environment = var.environment == "prod" ? "main" : "homolog"
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+data "terraform_remote_state" "database" {
+  backend = "s3"
+
+  config = {
+    bucket = var.terraform_state_bucket
+    key    = "mecanica-database/${local.database_state_environment}/terraform.tfstate"
+    region = var.aws_region
+  }
+}
+
+resource "aws_security_group" "lambda" {
+  name        = "${local.name}-lambda"
+  description = "Network access for the Mecanica authentication Lambda."
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "postgresql" {
+  security_group_id = aws_security_group.lambda.id
+  description       = "PostgreSQL access from the authentication Lambda."
+
+  referenced_security_group_id = data.terraform_remote_state.database.outputs.database_security_group_id
+  from_port                    = 5432
+  ip_protocol                  = "tcp"
+  to_port                      = 5432
 }
 
 resource "aws_lambda_function" "authentication" {
@@ -17,9 +55,14 @@ resource "aws_lambda_function" "authentication" {
   memory_size = 512
   timeout     = 15
 
+  vpc_config {
+    subnet_ids         = slice(sort(data.aws_subnets.default.ids), 0, 2)
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
   environment {
     variables = {
-      DATABASE_URL           = var.database_url
+      DATABASE_URL           = data.terraform_remote_state.database.outputs.database_jdbc_url
       DATABASE_USERNAME      = var.database_username
       DATABASE_PASSWORD      = var.database_password
       JWT_PRIVATE_KEY        = var.jwt_private_key
