@@ -25,16 +25,15 @@ variable "lambda_jar_path" {
   default     = "../target/mecanica-auth-lambda-0.1.0-SNAPSHOT-aws.jar"
 }
 
-variable "database_url" {
-  description = "URL JDBC do PostgreSQL."
+variable "terraform_state_bucket" {
+  description = "Bucket S3 compartilhado pelos states Terraform."
   type        = string
-  sensitive   = true
 }
 
 variable "database_username" {
   description = "Usuário do PostgreSQL."
   type        = string
-  sensitive   = true
+  default     = "mecanica_admin"
 }
 
 variable "database_password" {

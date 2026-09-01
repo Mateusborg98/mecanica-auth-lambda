@@ -43,3 +43,6 @@ terraform.rc
 # Valores locais e sensíveis
 *.tfvars
 !*.tfvars.example
+
+# Configuração local do backend
+**/backend.hcl
