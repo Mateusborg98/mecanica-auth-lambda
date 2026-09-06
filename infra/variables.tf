@@ -64,3 +64,13 @@ variable "jwt_expiration_seconds" {
     error_message = "A expiração do JWT deve ser maior que zero."
   }
 }
+
+variable "application_base_url" {
+  description = "URL base pública do Load Balancer da aplicação no EKS, incluindo esquema e porta."
+  type        = string
+
+  validation {
+    condition     = can(regex("^https?://[^/]+(:[0-9]+)?$", var.application_base_url))
+    error_message = "Informe a URL base no formato http(s)://host[:porta], sem barra final."
+  }
+}

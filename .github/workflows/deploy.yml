@@ -32,6 +32,7 @@ jobs:
       TF_VAR_lambda_role_arn: ${{ secrets.LAMBDA_ROLE_ARN }}
       TF_VAR_database_password: ${{ secrets.DATABASE_PASSWORD }}
       TF_VAR_jwt_private_key: ${{ secrets.JWT_PRIVATE_KEY }}
+      TF_VAR_application_base_url: ${{ vars.APPLICATION_BASE_URL }}
       TF_VAR_environment: ${{ github.ref_name == 'main' && 'prod' || 'homolog' }}
 
     steps:
@@ -57,6 +58,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          missing=()
+          for name in TF_STATE_BUCKET TF_VAR_lambda_role_arn TF_VAR_database_password TF_VAR_jwt_private_key TF_VAR_application_base_url; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Configuração obrigatória ausente: %s\n' "${missing[*]}"
+            exit 1
+          fi
 
       - name: Allow Maven Wrapper execution
         run: chmod +x mvnw
