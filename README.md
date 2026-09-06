@@ -14,6 +14,7 @@ própria Lambda.
 - não revelar se um documento específico existe ou está inativo;
 - gerar JWT de curta duração assinado com chave privada RSA;
 - disponibilizar `POST /auth` por meio do AWS API Gateway;
+- encaminhar as demais rotas do Gateway para a aplicação no EKS;
 - executar dentro da VPC para acessar o Amazon RDS privado.
 
 ## Fluxo de autenticação
@@ -36,6 +37,11 @@ sequenceDiagram
 
 A chave privada existe somente na Lambda. A aplicação principal recebe apenas
 a chave pública correspondente, portanto valida tokens sem poder emitir novos.
+
+O mesmo API Gateway também funciona como ponto de entrada da solução. A rota
+mais específica `POST /auth` invoca a Lambda; as demais rotas são encaminhadas
+por proxy HTTP ao Load Balancer da aplicação no EKS. As rotas sensíveis continuam
+validando o JWT RS256 na aplicação.
 
 ## Contrato HTTP
 
@@ -111,8 +117,9 @@ Segredos reais não são versionados nem exibidos nos logs.
 ## Infraestrutura e CI/CD
 
 O Terraform reutiliza a VPC do Learner Lab, lê o estado remoto do banco e cria
-a Lambda Java 21, API Gateway, rota `POST /auth`, integração, permissões e
-security group. O estado fica no S3, separado por ambiente.
+a Lambda Java 21, o API Gateway, a rota `POST /auth`, o proxy para o EKS,
+integrações, permissões e security group. O estado fica no S3, separado por
+ambiente.
 
 Configure nos environments `homolog` e `production`:
 
@@ -125,6 +132,7 @@ Configure nos environments `homolog` e `production`:
 | Secret | `AWS_ACCESS_KEY_ID` | Credencial temporária. |
 | Secret | `AWS_SECRET_ACCESS_KEY` | Credencial temporária. |
 | Secret | `AWS_SESSION_TOKEN` | Token temporário. |
+| Variable | `APPLICATION_BASE_URL` | URL pública do serviço no EKS, por exemplo `http://<load-balancer>:8080`. |
 
 Somente as três credenciais AWS temporárias são renovadas a cada nova sessão.
 
@@ -145,8 +153,14 @@ Invoke-RestMethod -Method Post -Uri "https://<api-id>.execute-api.us-east-1.amaz
 ```
 
 A resposta deve conter `accessToken`, `tokenType` igual a `Bearer` e expiração
-positiva. Use então o token em uma rota protegida da API principal. Não publique
-tokens nem documentos reais nas evidências.
+positiva. Use o mesmo domínio do Gateway para consumir uma rota protegida:
+
+```powershell
+$headers = @{ Authorization = "Bearer $($auth.accessToken)" }
+Invoke-RestMethod -Method Get -Uri "https://<api-id>.execute-api.us-east-1.amazonaws.com/ordens-servico" -Headers $headers
+```
+
+Não publique tokens nem documentos reais nas evidências.
 
 ## Custos
 

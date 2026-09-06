@@ -13,6 +13,11 @@ output "authentication_endpoint" {
   value       = "${aws_apigatewayv2_stage.authentication.invoke_url}/auth"
 }
 
+output "application_gateway_url" {
+  description = "URL única do API Gateway para acesso às APIs da aplicação."
+  value       = aws_apigatewayv2_stage.authentication.invoke_url
+}
+
 output "lambda_security_group_id" {
   description = "Security group utilizado pela Lambda dentro da VPC."
   value       = aws_security_group.lambda.id

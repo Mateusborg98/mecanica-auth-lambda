@@ -78,11 +78,12 @@ resource "aws_apigatewayv2_api" "authentication" {
 
   cors_configuration {
     allow_headers = [
+      "Authorization",
       "Content-Type",
       "X-Correlation-ID"
     ]
 
-    allow_methods = ["POST", "OPTIONS"]
+    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     allow_origins = ["*"]
   }
 }
@@ -105,6 +106,29 @@ resource "aws_apigatewayv2_route" "authentication" {
     [
       "integrations",
       aws_apigatewayv2_integration.authentication.id
+    ]
+  )
+}
+
+resource "aws_apigatewayv2_integration" "application" {
+  api_id = aws_apigatewayv2_api.authentication.id
+
+  integration_type   = "HTTP_PROXY"
+  integration_method = "ANY"
+  integration_uri    = "${var.application_base_url}/{proxy}"
+
+  timeout_milliseconds = 30000
+}
+
+resource "aws_apigatewayv2_route" "application" {
+  api_id = aws_apigatewayv2_api.authentication.id
+
+  route_key = "ANY /{proxy+}"
+  target = join(
+    "/",
+    [
+      "integrations",
+      aws_apigatewayv2_integration.application.id
     ]
   )
 }
