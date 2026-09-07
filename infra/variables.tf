@@ -25,16 +25,15 @@ variable "lambda_jar_path" {
   default     = "../target/mecanica-auth-lambda-0.1.0-SNAPSHOT-aws.jar"
 }
 
-variable "database_url" {
-  description = "URL JDBC do PostgreSQL."
+variable "terraform_state_bucket" {
+  description = "Bucket S3 compartilhado pelos states Terraform."
   type        = string
-  sensitive   = true
 }
 
 variable "database_username" {
   description = "Usuário do PostgreSQL."
   type        = string
-  sensitive   = true
+  default     = "mecanica_admin"
 }
 
 variable "database_password" {
@@ -63,5 +62,15 @@ variable "jwt_expiration_seconds" {
   validation {
     condition     = var.jwt_expiration_seconds > 0
     error_message = "A expiração do JWT deve ser maior que zero."
+  }
+}
+
+variable "application_base_url" {
+  description = "URL base pública do Load Balancer da aplicação no EKS, incluindo esquema e porta."
+  type        = string
+
+  validation {
+    condition     = can(regex("^https?://[^/]+(:[0-9]+)?$", var.application_base_url))
+    error_message = "Informe a URL base no formato http(s)://host[:porta], sem barra final."
   }
 }

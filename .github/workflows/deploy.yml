@@ -1,0 +1,99 @@
+name: Lambda CD
+
+on:
+  push:
+    branches:
+      - homolog
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-lambda-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Lambda
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'homolog' }}
+
+    env:
+      AWS_REGION: us-east-1
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+      TF_VAR_terraform_state_bucket: ${{ secrets.TF_STATE_BUCKET }}
+      TF_VAR_lambda_role_arn: ${{ secrets.LAMBDA_ROLE_ARN }}
+      TF_VAR_database_password: ${{ secrets.DATABASE_PASSWORD }}
+      TF_VAR_jwt_private_key: ${{ secrets.JWT_PRIVATE_KEY }}
+      TF_VAR_application_base_url: ${{ vars.APPLICATION_BASE_URL }}
+      TF_VAR_environment: ${{ github.ref_name == 'main' && 'prod' || 'homolog' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Configure Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          missing=()
+          for name in TF_STATE_BUCKET TF_VAR_lambda_role_arn TF_VAR_database_password TF_VAR_jwt_private_key TF_VAR_application_base_url; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Configuração obrigatória ausente: %s\n' "${missing[*]}"
+            exit 1
+          fi
+
+      - name: Allow Maven Wrapper execution
+        run: chmod +x mvnw
+
+      - name: Build and test deployment package
+        run: ./mvnw --batch-mode clean verify
+
+      - name: Initialize Terraform backend
+        run: |
+          terraform -chdir=infra init \
+            -reconfigure \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=mecanica-auth-lambda/${GITHUB_REF_NAME}/terraform.tfstate"
+
+      - name: Check Terraform formatting
+        run: terraform -chdir=infra fmt -check
+
+      - name: Validate Terraform
+        run: terraform -chdir=infra validate
+
+      - name: Create Terraform plan
+        run: terraform -chdir=infra plan -out=tfplan
+
+      - name: Apply Terraform plan
+        run: terraform -chdir=infra apply -auto-approve tfplan
