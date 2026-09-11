@@ -19,6 +19,25 @@ própria Lambda.
 
 ## Fluxo de autenticação
 
+### Componentes deste repositório
+
+```mermaid
+flowchart LR
+    Client[Cliente / Postman] --> Gateway[AWS API Gateway]
+    Gateway -->|POST /auth| Handler[Lambda Handler Java 21]
+    Handler --> UseCase[AuthenticateClientUseCase]
+    UseCase --> Repository[JdbcClientRepository]
+    UseCase --> Token[JwtTokenGateway]
+    Repository --> RDS[(RDS PostgreSQL privado)]
+    Token -->|JWT RS256| Gateway
+    Gateway --> Client
+    Gateway -->|ANY /proxy+| EKS[API principal no EKS]
+```
+
+O Terraform deste repositório provisiona API Gateway, Lambda, integrações,
+permissões de invocação e acesso de rede ao banco. A função utiliza a role
+preexistente do AWS Academy e não cria recursos IAM.
+
 ```mermaid
 sequenceDiagram
     actor Cliente
@@ -60,6 +79,15 @@ Resposta de sucesso:
 
 Documentos inválidos e clientes inexistentes/inativos não expõem dados
 internos. O CPF/CNPJ não é incluído no JWT.
+
+Documentação consumível:
+
+- [Swagger da aplicação pelo API Gateway](https://3o3iqeu0b9.execute-api.us-east-1.amazonaws.com/swagger-ui/index.html)
+- [Coleção Postman da solução, incluindo `POST /auth`](https://github.com/Mateusborg98/mecanica-api/blob/main/docs/postman/mecanica-fase3.postman_collection.json)
+- [Arquitetura completa](https://github.com/Mateusborg98/mecanica-api/blob/main/docs/architecture.md)
+
+O Swagger é produzido pela aplicação Spring; por isso a rota implementada
+nesta Lambda está registrada na coleção Postman e no contrato acima.
 
 ## Arquitetura do código
 
